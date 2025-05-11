@@ -89,7 +89,7 @@ def get_physical_data_by_date(footballer_id, date):
         
         if not physical_entry:
             return jsonify({'message': 'No data found for this date'}), 404
-        
+            
         return jsonify(physical_entry), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

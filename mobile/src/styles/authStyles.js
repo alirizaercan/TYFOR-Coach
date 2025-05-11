@@ -1,0 +1,142 @@
+// mobile/src/styles/authStyles.js
+import { StyleSheet } from 'react-native';
+import { colors } from './commonStyles';
+
+export const authStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  logoContainer: {
+    flex: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  logo: {
+    width: '100%',
+    height: '60%',
+    maxHeight: 200,
+  },
+  formContainer: {
+    flex: 3,
+    backgroundColor: colors.formBackground,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    position: 'relative',
+  },
+  logoOverlayContainer: {
+    position: 'absolute',
+    top: -50,
+    alignSelf: 'center',
+    height: 100,
+    width: 100,
+    borderRadius: 50,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  logoOverlay: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+  },
+  
+  // Form elements
+  scrollContainer: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+    marginBottom: 20,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.black,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  label: {
+    alignSelf: 'flex-start',
+    fontSize: 16,
+    color: colors.black,
+    marginBottom: 5,
+    fontWeight: '500',
+  },
+  input: {
+    width: '100%',
+    height: 50,
+    backgroundColor: colors.inputBackground,
+    borderRadius: 5,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: colors.inputText,
+  },
+  inputGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 10,
+  },
+  inputHalf: {
+    width: '48%',
+    height: 50,
+    backgroundColor: colors.inputBackground,
+    borderRadius: 5,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: colors.inputText,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 20,
+  },
+  switchButton: {
+    flex: 1,
+    backgroundColor: colors.buttonBackground,
+    height: 50,
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  switchButtonText: {
+    color: colors.buttonText,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  submitButton: {
+    flex: 1,
+    backgroundColor: colors.buttonBackground,
+    height: 50,
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  submitButtonText: {
+    color: colors.buttonText,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+});

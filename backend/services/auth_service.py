@@ -1,5 +1,6 @@
 import os
-import jwt
+from itsdangerous import URLSafeTimedSerializer as Serializer
+from itsdangerous.exc import BadSignature, BadTimeSignature, SignatureExpired
 from datetime import datetime, timedelta
 from werkzeug.security import check_password_hash, generate_password_hash
 from models.user import User
@@ -9,6 +10,10 @@ class AuthService:
     def __init__(self):
         self.db = Database()
         self.session = self.db.connect()
+        self.secret_key = os.getenv('SECRET_KEY')
+        self.salt = os.getenv('SECURITY_PASSWORD_SALT', 'default_salt')
+        self.serializer = Serializer(self.secret_key, salt=self.salt)
+
     
     def __del__(self):
         if self.session:
@@ -159,14 +164,15 @@ class AuthService:
         return True
     
     def _generate_token(self, user):
-        """Generate JWT token for authenticated user"""
-        token_expiration = int(os.getenv('JWT_EXPIRATION', 86400))  # Default to 24 hours
-        payload = {
-            'user_id': user.id,
-            'username': user.username,
-            'role': user.role,
-            'club': user.club,
-            'exp': datetime.utcnow() + timedelta(seconds=token_expiration)
-        }
-        
-        return jwt.encode(payload, os.getenv('SECRET_KEY'), algorithm="HS256")
+        try:
+            payload = {
+                'user_id': user.id,
+                'username': user.username,
+                'role': user.role,
+                'club': user.club
+            }
+            token = self.serializer.dumps(payload)
+            return token
+        except Exception as e:
+            print(f"Token Generation Error: {str(e)}")
+            raise

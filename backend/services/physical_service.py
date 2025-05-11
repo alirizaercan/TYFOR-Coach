@@ -74,52 +74,80 @@ class PhysicalService:
 
     def get_physical_entry_by_date(self, footballer_id, date):
         """Get physical data for a footballer on a specific date."""
-        # Convert date to datetime objects for the beginning and end of the day
-        start_date = datetime.strptime(date, '%Y-%m-%d')
-        end_date = datetime.strptime(date + ' 23:59:59', '%Y-%m-%d %H:%M:%S')
-        
-        physical_entry = self.session.query(Physical).filter(
-            Physical.footballer_id == footballer_id,
-            Physical.created_at.between(start_date, end_date)
-        ).first()
-        
-        if physical_entry:
+        try:
+            # Convert date string to datetime objects for the beginning and end of the day
+            start_date = datetime.strptime(f"{date} 00:00:00", '%Y-%m-%d %H:%M:%S')
+            end_date = datetime.strptime(f"{date} 23:59:59", '%Y-%m-%d %H:%M:%S')
+            
+            physical_entry = self.session.query(Physical).filter(
+                and_(
+                    Physical.footballer_id == footballer_id,
+                    Physical.created_at >= start_date,
+                    Physical.created_at <= end_date
+                )
+            ).first()
+            
+            if physical_entry:
+                return {
+                    'id': physical_entry.id,
+                    'footballer_id': physical_entry.footballer_id,
+                    'muscle_mass': physical_entry.muscle_mass,
+                    'muscle_strength': physical_entry.muscle_strength,
+                    'muscle_endurance': physical_entry.muscle_endurance,
+                    'flexibility': physical_entry.flexibility,
+                    'weight': physical_entry.weight,
+                    'body_fat_percentage': physical_entry.body_fat_percentage,
+                    'heights': physical_entry.heights,
+                    'thigh_circumference': physical_entry.thigh_circumference,
+                    'shoulder_circumference': physical_entry.shoulder_circumference,
+                    'arm_circumference': physical_entry.arm_circumference,
+                    'chest_circumference': physical_entry.chest_circumference,
+                    'back_circumference': physical_entry.back_circumference,
+                    'waist_circumference': physical_entry.waist_circumference,
+                    'leg_circumference': physical_entry.leg_circumference,
+                    'calf_circumference': physical_entry.calf_circumference,
+                    'created_at': physical_entry.created_at.strftime('%Y-%m-%d')
+                }
+            
+            # Veri bulunamazsa boş bir veri seti döndür
             return {
-                'id': physical_entry.id,
-                'footballer_id': physical_entry.footballer_id,
-                'muscle_mass': physical_entry.muscle_mass,
-                'muscle_strength': physical_entry.muscle_strength,
-                'muscle_endurance': physical_entry.muscle_endurance,
-                'flexibility': physical_entry.flexibility,
-                'weight': physical_entry.weight,
-                'body_fat_percentage': physical_entry.body_fat_percentage,
-                'heights': physical_entry.heights,
-                'thigh_circumference': physical_entry.thigh_circumference,
-                'shoulder_circumference': physical_entry.shoulder_circumference,
-                'arm_circumference': physical_entry.arm_circumference,
-                'chest_circumference': physical_entry.chest_circumference,
-                'back_circumference': physical_entry.back_circumference,
-                'waist_circumference': physical_entry.waist_circumference,
-                'leg_circumference': physical_entry.leg_circumference,
-                'calf_circumference': physical_entry.calf_circumference,
-                'created_at': physical_entry.created_at.strftime('%Y-%m-%d')
+                'id': None,
+                'footballer_id': footballer_id,
+                'muscle_mass': None,
+                'muscle_strength': None,
+                'muscle_endurance': None,
+                'flexibility': None,
+                'weight': None,
+                'body_fat_percentage': None,
+                'heights': None,
+                'thigh_circumference': None,
+                'shoulder_circumference': None,
+                'arm_circumference': None,
+                'chest_circumference': None,
+                'back_circumference': None,
+                'waist_circumference': None,
+                'leg_circumference': None,
+                'calf_circumference': None,
+                'created_at': date
             }
-        
-        return None
+            
+        except Exception as e:
+            print(f"Error in get_physical_entry_by_date: {str(e)}")
+            return None
 
     def add_physical_data(self, footballer_id, data):
-        """Add new physical data for a footballer."""
         try:
-            # Check if entry already exists for today
-            today = datetime.now().strftime('%Y-%m-%d')
-            existing_entry = self.get_physical_entry_by_date(footballer_id, today)
+            selected_date = data.get('created_at', datetime.now().strftime('%Y-%m-%d'))
+            
+            # Seçilen tarih için kontrol yap
+            existing_entry = self.get_physical_entry_by_date(footballer_id, selected_date)
             
             if existing_entry:
-                return None, "Physical data already exists for today. Please use update instead."
-            
-            # Create new physical entry
+                return None, "Bu tarih için zaten veri mevcut"
+
             new_entry = Physical(
                 footballer_id=footballer_id,
+                created_at=datetime.strptime(selected_date, '%Y-%m-%d'),
                 muscle_mass=data.get('muscle_mass'),
                 muscle_strength=data.get('muscle_strength'),
                 muscle_endurance=data.get('muscle_endurance'),
