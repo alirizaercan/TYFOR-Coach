@@ -5,6 +5,7 @@ from models.league import League
 from models.football_team import FootballTeam
 from models.footballer import Footballer
 from models.endurance import Endurance
+from models.user import User
 from sqlalchemy.orm import Session
 
 class EnduranceService:
@@ -16,22 +17,87 @@ class EnduranceService:
         leagues = self.session.query(League).all()
         return [{"league_id": league.league_id, "league_name": league.league_name, "league_logo_path": league.league_logo_path} for league in leagues]
 
-    def get_teams_by_league(self, league_id):
-        """Get all teams in a specific league."""
-        teams = self.session.query(FootballTeam).filter_by(league_id=league_id).all()
+    def get_teams_by_league(self, league_id, user_id=None):
+        """Get all teams in a specific league that user can access."""
+        if user_id:
+            user = self.session.query(User).filter(User.id == user_id).first()
+            if user and not user.is_admin and user.team_id:
+                # Non-admin users can only see their assigned team
+                teams = self.session.query(FootballTeam).filter(
+                    and_(FootballTeam.league_id == league_id, FootballTeam.team_id == user.team_id)
+                ).all()
+            else:
+                # Admin users can see all teams
+                teams = self.session.query(FootballTeam).filter_by(league_id=league_id).all()
+        else:
+            teams = self.session.query(FootballTeam).filter_by(league_id=league_id).all()
+          
+        
         return [{"team_id": team.team_id, "team_name": team.team_name, "img_path": team.img_path} for team in teams]
-
-    def get_footballers_by_team(self, team_id):
-        """Get all footballers in a specific team."""
+      
+    def get_footballers_by_team(self, team_id, user_id=None):
+        """Get all footballers in a specific team that user can access."""
+        print(f"DEBUG: get_footballers_by_team called with team_id={team_id}, user_id={user_id}")
+        
+        if user_id:
+            user = self.session.query(User).filter(User.id == user_id).first()
+            print(f"DEBUG: Found user: {user.id if user else None}, team_id: {user.team_id if user else None}, is_admin: {user.is_admin if user else None}")
+            
+            if user and not user.is_admin:
+                try:
+                    # Convert both to strings for comparison to avoid type issues
+                    user_team_id = int(user.team_id) if user.team_id is not None else None
+                    requested_team_id = int(team_id) if team_id is not None else None
+                    
+                    print(f"DEBUG: Comparing user_team_id={user_team_id} with requested_team_id={requested_team_id}")
+                    
+                    if user_team_id != requested_team_id:
+                        # Non-admin users can only access their assigned team's footballers
+                        print(f"DEBUG: Access denied - user team {user_team_id} != requested team {requested_team_id}")
+                        return []
+                except Exception as e:
+                    print(f"DEBUG: Error comparing team_ids: {e}")
+                    return []
+        
+        print(f"DEBUG: Querying footballers for team_id={team_id}")
         footballers = self.session.query(Footballer).filter_by(team_id=team_id).all()
+        print(f"DEBUG: Found {len(footballers)} footballers")
         return [{
             "footballer_id": f.footballer_id, 
             "footballer_name": f.footballer_name, 
             "footballer_img_path": f.footballer_img_path, 
             "position": f.position,
             "nationality_img_path": f.nationality_img_path, 
-            "birthday": f.birthday.strftime('%d %B %Y') if f.birthday else None
+            "birthday": f.birthday.strftime('%d %B %Y') if f.birthday else None,
+            "age": f.age,
+            "height": f.height,
+            "trikot_num": f.trikot_num,
+            "feet": f.feet,
+            "market_value": f.market_value
         } for f in footballers]
+
+    def can_access_entry(self, user_id, entry_id):
+        """Check if user can access a specific endurance data entry."""
+        user = self.session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False
+        
+        # Admin users can access all entries
+        if user.is_admin:
+            return True
+        
+        # Get the endurance entry and check if it belongs to user's team
+        entry = self.session.query(Endurance).filter(Endurance.id == entry_id).first()
+        if not entry:
+            return False
+        
+        # Get footballer's team
+        footballer = self.session.query(Footballer).filter(Footballer.footballer_id == entry.footballer_id).first()
+        if not footballer:
+            return False
+        
+        # Check if user's team matches footballer's team
+        return user.team_id == footballer.team_id
 
     def get_endurance_data(self, footballer_id, graph_type=None, start_date=None, end_date=None):
         """Get endurance data for a footballer within a date range."""
@@ -121,15 +187,19 @@ class EnduranceService:
             
         except Exception as e:
             self.session.rollback()
-            return None, str(e)
-
-    def update_endurance_data(self, entry_id, data):
+            return None, str(e)    
+        
+    def update_endurance_data(self, entry_id, data, user_id=None):
         """Update existing endurance data for a footballer."""
         try:
             entry = self.session.query(Endurance).filter(Endurance.id == entry_id).first()
             
             if not entry:
                 return None, "Endurance data entry not found"
+            
+            # Check authorization if user_id is provided
+            if user_id and not self.can_access_entry(user_id, entry_id):
+                return None, "Access denied! You can only modify data for your assigned team."
             
             # Update fields if provided
             if 'running_distance' in data:
@@ -149,7 +219,6 @@ class EnduranceService:
             entry.timestamp = datetime.utcnow()
             
             self.session.commit()
-            
             return {
                 'id': entry.id,
                 'footballer_id': entry.footballer_id,
@@ -161,13 +230,17 @@ class EnduranceService:
             self.session.rollback()
             return None, str(e)
 
-    def delete_endurance_data(self, entry_id):
+    def delete_endurance_data(self, entry_id, user_id=None):
         """Delete endurance data entry."""
         try:
             entry = self.session.query(Endurance).filter(Endurance.id == entry_id).first()
             
             if not entry:
                 return False, "Endurance data entry not found"
+            
+            # Check authorization if user_id is provided
+            if user_id and not self.can_access_entry(user_id, entry_id):
+                return False, "Access denied! You can only delete data for your assigned team."
             
             self.session.delete(entry)
             self.session.commit()

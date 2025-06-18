@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#110555">
+  <title>TYFOR Coach</title>
+  <link rel="stylesheet" href="./index.css">
+  <style>
+    /* Inline critical CSS for immediate load */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    #root {
+      height: 100%;
+      width: 100%;
+      overflow: auto;
+    }
+    
+    /* Loading screen */
+    .loading-screen {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #0A0344, #110555, #1a0866, #2c1075);
+      color: #00E1FF;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    
+    .loading-text {
+      font-size: 18px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="loading-screen">
+      <div class="loading-text">Loading TYFOR Coach...</div>
+    </div>
+  </div>
+</body>
+</html>

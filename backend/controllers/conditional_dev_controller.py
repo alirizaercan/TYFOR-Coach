@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, request, jsonify, current_app
 from services.conditional_service import ConditionalService
 from utils.database import Database
-from middlewares.auth_middleware import token_required, coach_required
+from middlewares.auth_middleware import token_required, coach_required, team_access_required, footballer_access_required
 import random
 import numpy as np
 import seaborn as sns
@@ -35,11 +35,11 @@ def get_leagues():
 @conditional_bp.route('/teams/<league_id>', methods=['GET'])
 @token_required
 def get_teams(league_id):
-    """Get teams by league_id."""
+    """Get teams by league_id that user can access."""
     session = db.connect()
     try:
         service = ConditionalService(session)
-        teams = service.get_teams_by_league(league_id)
+        teams = service.get_teams_by_league(league_id, user_id=request.user_id)
         return jsonify(teams), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -48,20 +48,37 @@ def get_teams(league_id):
 
 @conditional_bp.route('/footballers/<team_id>', methods=['GET'])
 @token_required
+@team_access_required  # Artık düzeltildi, tekrar aktif
 def get_footballers(team_id):
     """Get footballers by team_id."""
+    print(f"DEBUG: Received team_id: {team_id} (type: {type(team_id)})")
+    
+    # team_id'yi integer'a çevir
+    try:
+        team_id = int(team_id)
+        print(f"DEBUG: Converted team_id to: {team_id} (type: {type(team_id)})")
+    except ValueError:
+        print(f"DEBUG: Failed to convert team_id to int: {team_id}")
+        return jsonify({'error': 'Invalid team ID format'}), 400
+    
     session = db.connect()
     try:
         service = ConditionalService(session)
-        footballers = service.get_footballers_by_team(team_id)
+        print(f"DEBUG: Calling get_footballers_by_team with team_id={team_id}, user_id={request.user_id}")
+        footballers = service.get_footballers_by_team(team_id, user_id=request.user_id)
+        print(f"DEBUG: Found {len(footballers)} footballers")
         return jsonify(footballers), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"DEBUG: Exception in get_footballers: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Error fetching footballers: {str(e)}'}), 500
     finally:
         db.close(session)
 
 @conditional_bp.route('/conditional-data/<footballer_id>', methods=['GET'])
 @token_required
+@footballer_access_required
 def get_footballer_conditional_data(footballer_id):
     """Get conditional data for a specific footballer."""
     session = db.connect()
@@ -80,6 +97,7 @@ def get_footballer_conditional_data(footballer_id):
 
 @conditional_bp.route('/conditional-data/<footballer_id>/<date>', methods=['GET'])
 @token_required
+@footballer_access_required
 def get_conditional_data_by_date(footballer_id, date):
     """Get conditional data for a footballer on a specific date."""
     session = db.connect()
@@ -87,17 +105,54 @@ def get_conditional_data_by_date(footballer_id, date):
         service = ConditionalService(session)
         conditional_entry = service.get_conditional_entry_by_date(footballer_id, date)
         
+        # Veri yoksa veya hata varsa her zaman 0 değerlerle template döndür
         if not conditional_entry:
-            return jsonify({'message': 'No data found for this date'}), 404
+            # Veri yoksa 0 değerlerle template döndür
+            empty_template = {
+                'footballer_id': int(footballer_id),
+                'date': date,
+                'vo2_max': 0,
+                'lactate_levels': 0,
+                'training_intensity': 0,
+                'recovery_times': 0,
+                'current_vo2_max': 0,
+                'current_lactate_levels': 0,
+                'current_muscle_strength': 0,
+                'target_vo2_max': 0,
+                'target_lactate_level': 0,
+                'target_muscle_strength': 0,
+                'created_at': None,
+                'message': 'No data found for this date. Default values shown.'
+            }
+            return jsonify(empty_template), 200
         
         return jsonify(conditional_entry), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Herhangi bir hata durumunda da 0 değerlerle template döndür
+        print(f"Error in get_conditional_data_by_date: {str(e)}")
+        empty_template = {
+            'footballer_id': int(footballer_id),
+            'date': date,
+            'vo2_max': 0,
+            'lactate_levels': 0,
+            'training_intensity': 0,
+            'recovery_times': 0,
+            'current_vo2_max': 0,
+            'current_lactate_levels': 0,
+            'current_muscle_strength': 0,
+            'target_vo2_max': 0,
+            'target_lactate_level': 0,
+            'target_muscle_strength': 0,
+            'created_at': None,
+            'message': 'Error occurred or invalid date format. Default values shown.'
+        }
+        return jsonify(empty_template), 200
     finally:
         db.close(session)
 
 @conditional_bp.route('/conditional-data/<footballer_id>', methods=['POST'])
 @coach_required
+@footballer_access_required
 def add_conditional_data(footballer_id):
     """Add new conditional data for a footballer."""
     if not request.is_json:
@@ -134,7 +189,7 @@ def update_conditional_data(entry_id):
         data = request.get_json()
         service = ConditionalService(session)
         
-        result, message = service.update_conditional_data(entry_id, data)
+        result, message = service.update_conditional_data(entry_id, data, user_id=request.user_id)
         
         if not result:
             return jsonify({"message": message}), 400
@@ -156,7 +211,7 @@ def delete_conditional_data(entry_id):
     try:
         service = ConditionalService(session)
         
-        result, message = service.delete_conditional_data(entry_id)
+        result, message = service.delete_conditional_data(entry_id, user_id=request.user_id)
         
         if not result:
             return jsonify({"message": message}), 400
@@ -171,6 +226,7 @@ def delete_conditional_data(entry_id):
 
 @conditional_bp.route('/conditional-history/<footballer_id>', methods=['GET'])
 @token_required
+@footballer_access_required
 def get_conditional_history(footballer_id):
     """Get conditional data history for a footballer."""
     session = db.connect()

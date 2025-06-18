@@ -6,8 +6,8 @@ export const API_BASE_URL = "http://localhost:5000/api";
 // Authentication endpoints
 export const AUTH_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/auth/login`,
-  REGISTER: `${API_BASE_URL}/auth/register`,
   PROFILE: `${API_BASE_URL}/auth/profile`,
+  PROFILE_WITH_TEAM: `${API_BASE_URL}/auth/profile/with-team`,
   VERIFY_TOKEN: `${API_BASE_URL}/auth/verify-token`,
   LOGOUT: `${API_BASE_URL}/auth/logout`,
 };

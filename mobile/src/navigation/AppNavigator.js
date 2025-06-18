@@ -1,9 +1,11 @@
 // mobile/src/navigation/AppNavigator.js
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Contexts
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 
 // Navigators
 import AuthNavigator from './AuthNavigator';
@@ -16,35 +18,12 @@ import ConditionalDevelopmentScreen from '../screens/Development/ConditionalDeve
 import EnduranceDevelopmentScreen from '../screens/Development/EnduranceDevelopmentScreen';
 
 // Services
-import { verifyToken } from '../services/auth';
 import { colors } from '../styles/commonStyles';
 
 const Stack = createStackNavigator();
 
-const AppNavigator = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [userToken, setUserToken] = useState(null);
-
-  useEffect(() => {
-    const bootstrapAsync = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        if (token) {
-          const tokenResult = await verifyToken();
-          setUserToken(tokenResult.valid ? token : null);
-        } else {
-          setUserToken(null);
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        setUserToken(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    bootstrapAsync();
-  }, []);
+const AppStack = () => {
+  const { userToken, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -54,21 +33,8 @@ const AppNavigator = () => {
     );
   }
 
-  // IMPORTANT: Create a listener to update authentication state when it changes
-  const onStateChange = (state) => {
-    // Check AsyncStorage token on each navigation state change
-    const checkAuthState = async () => {
-      const token = await AsyncStorage.getItem('token');
-      if (token !== userToken) {
-        setUserToken(token);
-      }
-    };
-    
-    checkAuthState();
-  };
-
   return (
-    <NavigationContainer onStateChange={onStateChange}>
+    <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
           headerShown: false
@@ -93,6 +59,14 @@ const AppNavigator = () => {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+  );
+};
+
+const AppNavigator = () => {
+  return (
+    <AuthProvider>
+      <AppStack />
+    </AuthProvider>
   );
 };
 

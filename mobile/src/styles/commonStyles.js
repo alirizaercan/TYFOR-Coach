@@ -1,5 +1,5 @@
 // mobile/src/styles/commonStyles.js
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
 // Color palette for the app
 export const colors = {
@@ -24,6 +24,10 @@ export const commonStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    ...(Platform.OS === 'web' && {
+      height: '100vh',
+      overflow: 'auto',
+    }),
   },
   centerContent: {
     flex: 1,

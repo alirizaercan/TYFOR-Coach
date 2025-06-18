@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, request, jsonify, current_app
 from services.endurance_service import EnduranceService
 from utils.database import Database
-from middlewares.auth_middleware import token_required, coach_required
+from middlewares.auth_middleware import token_required, coach_required, team_access_required, footballer_access_required
 import random
 import numpy as np
 import seaborn as sns
@@ -35,11 +35,11 @@ def get_leagues():
 @endurance_bp.route('/teams/<league_id>', methods=['GET'])
 @token_required
 def get_teams(league_id):
-    """Get teams by league_id."""
+    """Get teams by league_id that user can access."""
     session = db.connect()
     try:
         service = EnduranceService(session)
-        teams = service.get_teams_by_league(league_id)
+        teams = service.get_teams_by_league(league_id, user_id=request.user_id)
         return jsonify(teams), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -48,20 +48,26 @@ def get_teams(league_id):
 
 @endurance_bp.route('/footballers/<team_id>', methods=['GET'])
 @token_required
+@team_access_required
 def get_footballers(team_id):
     """Get footballers by team_id."""
     session = db.connect()
     try:
         service = EnduranceService(session)
-        footballers = service.get_footballers_by_team(team_id)
+        footballers = service.get_footballers_by_team(team_id, user_id=request.user_id)
         return jsonify(footballers), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        return jsonify({
+            'error': f'Error fetching footballers: {str(e)}',
+            'traceback': traceback.format_exc()
+        }), 500
     finally:
         db.close(session)
 
 @endurance_bp.route('/endurance-data/<footballer_id>', methods=['GET'])
 @token_required
+@footballer_access_required
 def get_footballer_endurance_data(footballer_id):
     """Get endurance data for a specific footballer."""
     session = db.connect()
@@ -80,6 +86,7 @@ def get_footballer_endurance_data(footballer_id):
 
 @endurance_bp.route('/endurance-data/<footballer_id>/<date>', methods=['GET'])
 @token_required
+@footballer_access_required
 def get_endurance_entry_by_date(footballer_id, date):
     """Get endurance data for a footballer on a specific date."""
     session = db.connect()
@@ -98,6 +105,7 @@ def get_endurance_entry_by_date(footballer_id, date):
 
 @endurance_bp.route('/endurance-data/<footballer_id>', methods=['POST'])
 @coach_required
+@footballer_access_required
 def add_endurance_data(footballer_id):
     """Add new endurance data for a footballer."""
     if not request.is_json:
@@ -134,7 +142,7 @@ def update_endurance_data(entry_id):
         data = request.get_json()
         service = EnduranceService(session)
         
-        result, message = service.update_endurance_data(entry_id, data)
+        result, message = service.update_endurance_data(entry_id, data, user_id=request.user_id)
         
         if not result:
             return jsonify({"message": message}), 400
@@ -156,7 +164,7 @@ def delete_endurance_data(entry_id):
     try:
         service = EnduranceService(session)
         
-        result, message = service.delete_endurance_data(entry_id)
+        result, message = service.delete_endurance_data(entry_id, user_id=request.user_id)
         
         if not result:
             return jsonify({"message": message}), 400
@@ -171,6 +179,7 @@ def delete_endurance_data(entry_id):
 
 @endurance_bp.route('/endurance-history/<footballer_id>', methods=['GET'])
 @token_required
+@footballer_access_required
 def get_endurance_history(footballer_id):
     """Get endurance data history for a footballer."""
     session = db.connect()

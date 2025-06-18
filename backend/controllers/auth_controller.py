@@ -46,7 +46,11 @@ def register():
         firstname=data.get('firstname'),
         lastname=data.get('lastname'),
         role=data.get('role'),
-        club=data.get('club')
+        club=data.get('club'),
+        team_id=data.get('team_id'),
+        access_key=data.get('access_key'),
+        is_admin=data.get('is_admin', False),
+        needs_password_change=data.get('needs_password_change', False)
     )
     
     if not user:
@@ -69,6 +73,21 @@ def get_profile():
     
     return jsonify({
         "message": "Profile retrieved successfully",
+        "user": user
+    }), 200
+
+@auth_controller.route('/profile/with-team', methods=['GET'])
+@token_required
+def get_profile_with_team():
+    """Get user profile information with team details including logo"""
+    user_id = request.user_id
+    user = auth_service.get_user_with_team_info(user_id)
+    
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    
+    return jsonify({
+        "message": "Profile with team info retrieved successfully",
         "user": user
     }), 200
 
@@ -116,3 +135,40 @@ def verify_token():
         "message": "Token is valid",
         "user": user
     }), 200
+
+@auth_controller.route('/debug/user-info', methods=['GET'])
+@token_required
+def debug_user_info():
+    """Debug endpoint to check user information and permissions"""
+    from utils.database import Database
+    from services.authorization_service import AuthorizationService
+    
+    db = Database()
+    session = db.connect()
+    try:
+        auth_service_obj = AuthorizationService(session)
+        user = auth_service_obj.get_user_by_id(request.user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Get accessible teams
+        accessible_teams = auth_service_obj.get_user_accessible_teams(request.user_id)
+        
+        debug_info = {
+            "user_id": user.id,
+            "username": user.username,
+            "team_id": user.team_id,
+            "is_admin": user.is_admin,
+            "token_user_id": request.user_id,
+            "token_team_id": getattr(request, 'user_team_id', None),
+            "token_is_admin": getattr(request, 'is_admin', None),
+            "accessible_teams": [{"team_id": team.team_id, "team_name": team.team_name} for team in accessible_teams]
+        }
+        
+        return jsonify(debug_info), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close(session)

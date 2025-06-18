@@ -6,23 +6,23 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  Image, 
   ScrollView, 
   KeyboardAvoidingView, 
-  Platform 
+  Platform,
+  Dimensions
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../styles/commonStyles';
 
-const AuthForm = ({ isLogin, onSubmit, onToggleMode }) => {
+const { width } = Dimensions.get('window');
+
+const AuthForm = ({ onSubmit }) => {
   const [formData, setFormData] = useState({
     username: '',
-    password: '',
-    firstname: '',
-    lastname: '',
-    email: '',
-    role: '',
-    club: '',
+    password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   const handleChange = (name, value) => {
     setFormData({
@@ -34,234 +34,186 @@ const AuthForm = ({ isLogin, onSubmit, onToggleMode }) => {
   const handleSubmit = () => {
     onSubmit(formData);
   };
-
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.avatarContainer}>
-          <Image 
-            source={require('../assets/images/user_icon.png')} 
-            style={styles.avatar} 
+    <View style={styles.container}>
+      {/* Username Input */}
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Username</Text>
+        <View style={[
+          styles.inputWrapper,
+          focusedField === 'username' && styles.inputWrapperFocused
+        ]}>
+          <Ionicons 
+            name="person-outline" 
+            size={20} 
+            color={focusedField === 'username' ? '#4A90E2' : '#9CA3AF'} 
+            style={styles.inputIcon}
           />
-          <Text style={styles.title}>{isLogin ? 'Sign In' : 'Sign Up'}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your username"
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={formData.username}
+            onChangeText={(text) => handleChange('username', text)}
+            onFocus={() => setFocusedField('username')}
+            onBlur={() => setFocusedField(null)}
+          />
         </View>
-
-        {/* Register Form Fields */}
-        {!isLogin && (
-          <>
-            <View style={styles.inputGroup}>
-              <TextInput
-                style={styles.inputHalf}
-                placeholder="First Name"
-                placeholderTextColor={colors.placeholderText}
-                value={formData.firstname}
-                onChangeText={(text) => handleChange('firstname', text)}
-              />
-              <TextInput
-                style={styles.inputHalf}
-                placeholder="Last Name"
-                placeholderTextColor={colors.placeholderText}
-                value={formData.lastname}
-                onChangeText={(text) => handleChange('lastname', text)}
-              />
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor={colors.placeholderText}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={formData.email}
-              onChangeText={(text) => handleChange('email', text)}
-            />
-            <View style={styles.inputGroup}>
-              <TextInput
-                style={styles.inputHalf}
-                placeholder="Role"
-                placeholderTextColor={colors.placeholderText}
-                value={formData.role}
-                onChangeText={(text) => handleChange('role', text)}
-              />
-              <TextInput
-                style={styles.inputHalf}
-                placeholder="Club"
-                placeholderTextColor={colors.placeholderText}
-                value={formData.club}
-                onChangeText={(text) => handleChange('club', text)}
-              />
-            </View>
-          </>
-        )}
-
-        {/* Login Form Fields */}
-        {isLogin && (
-          <>
-            <Text style={styles.label}>Username</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Username"
-              placeholderTextColor={colors.placeholderText}
-              autoCapitalize="none"
-              value={formData.username}
-              onChangeText={(text) => handleChange('username', text)}
-            />
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={colors.placeholderText}
-              secureTextEntry
-              value={formData.password}
-              onChangeText={(text) => handleChange('password', text)}
-            />
-          </>
-        )}
-
-        {/* Common fields for both forms */}
-        {!isLogin && (
-          <>
-            <Text style={styles.label}>Username</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Username"
-              placeholderTextColor={colors.placeholderText}
-              autoCapitalize="none"
-              value={formData.username}
-              onChangeText={(text) => handleChange('username', text)}
-            />
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={colors.placeholderText}
-              secureTextEntry
-              value={formData.password}
-              onChangeText={(text) => handleChange('password', text)}
-            />
-          </>
-        )}
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.switchButton} 
-            onPress={onToggleMode}
+      </View>
+      
+      {/* Password Input */}
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Password</Text>
+        <View style={[
+          styles.inputWrapper,
+          focusedField === 'password' && styles.inputWrapperFocused
+        ]}>
+          <Ionicons 
+            name="lock-closed-outline" 
+            size={20} 
+            color={focusedField === 'password' ? '#4A90E2' : '#9CA3AF'} 
+            style={styles.inputIcon}
+          />
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Enter your password"
+            placeholderTextColor="#9CA3AF"
+            secureTextEntry={!showPassword}
+            value={formData.password}
+            onChangeText={(text) => handleChange('password', text)}
+            onFocus={() => setFocusedField('password')}
+            onBlur={() => setFocusedField(null)}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowPassword(!showPassword)}
           >
-            <Text style={styles.switchButtonText}>
-              {isLogin ? 'Create Account' : 'Back to Login'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.submitButton} 
-            onPress={handleSubmit}
-          >
-            <Text style={styles.submitButtonText}>
-              {isLogin ? 'Log In' : 'Sign Up'}
-            </Text>
+            <Ionicons 
+              name={showPassword ? "eye-outline" : "eye-off-outline"} 
+              size={20} 
+              color="#9CA3AF"
+            />
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+
+      {/* Submit Button */}
+      <TouchableOpacity 
+        style={styles.submitButton} 
+        onPress={handleSubmit}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.submitButtonText}>Sign In</Text>
+        <Ionicons name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: '100%',
+    paddingHorizontal: 0,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000',
-    marginTop: 10,
-    marginBottom: 20,
+  
+  // Input Container Styles
+  inputContainer: {
+    marginBottom: 24,
   },
   label: {
-    alignSelf: 'flex-start',
-    fontSize: 16,
-    color: '#000',
-    marginBottom: 5,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+    marginLeft: 4,
+  },  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 18,
+    paddingVertical: 6,
+    minHeight: 56,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  inputWrapperFocused: {
+    borderColor: '#4A90E2',
+    backgroundColor: '#F0F8FF',
+    shadowColor: '#4A90E2',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    transform: [{ scale: 1.01 }],
+  },  inputIcon: {
+    marginRight: 14,
+    opacity: 0.8,
   },
   input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#00E1FF',
-    borderRadius: 5,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: '#000',
-  },
-  inputGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 10,
-  },
-  inputHalf: {
-    width: '48%',
-    height: 50,
-    backgroundColor: '#00E1FF',
-    borderRadius: 5,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    color: '#000',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 20,
-  },
-  switchButton: {
     flex: 1,
-    backgroundColor: '#00E1FF',
-    height: 50,
-    borderRadius: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  switchButtonText: {
-    color: '#000',
     fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 14,
     fontWeight: '500',
   },
+  eyeButton: {
+    padding: 6,
+    marginLeft: 8,
+    borderRadius: 6,
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+  },
+  // Submit Button Styles
   submitButton: {
-    flex: 1,
-    backgroundColor: '#00E1FF',
-    height: 50,
-    borderRadius: 5,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 10,
+    justifyContent: 'center',
+    backgroundColor: '#4A90E2',
+    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    marginTop: 24,
+    marginBottom: 8,
+    marginHorizontal: 0,
+    minHeight: 56,
+    width: '100%',
+    shadowColor: '#4A90E2',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease-in-out',
+      },
+    }),
+  },submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginRight: 8,
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
-  submitButtonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '500',
+  buttonIcon: {
+    marginLeft: 4,
   },
 });
 

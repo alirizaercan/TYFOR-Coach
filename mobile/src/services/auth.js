@@ -9,7 +9,6 @@ export const loginUser = async (username, password) => {
     const response = await post(AUTH_ENDPOINTS.LOGIN, { username, password });
     
     if (response && response.user && response.user.token) {
-      // Store user data and token
       await AsyncStorage.setItem('token', response.user.token);
       await AsyncStorage.setItem('user', JSON.stringify({
         id: response.user.id,
@@ -18,7 +17,11 @@ export const loginUser = async (username, password) => {
         club: response.user.club,
         email: response.user.email,
         firstname: response.user.firstname,
-        lastname: response.user.lastname
+        lastname: response.user.lastname,
+        team_id: response.user.team_id,
+        access_key: response.user.access_key,
+        is_admin: response.user.is_admin,
+        needs_password_change: response.user.needs_password_change
       }));
       
       return {
@@ -40,40 +43,33 @@ export const loginUser = async (username, password) => {
   }
 };
 
-// Register a new user
-export const registerUser = async (userData) => {
+// Check if current user is admin
+export const isUserAdmin = async () => {
   try {
-    const response = await post(AUTH_ENDPOINTS.REGISTER, userData);
-    
-    if (response && response.user && response.user.token) {
-      // Store user data and token
-      await AsyncStorage.setItem('token', response.user.token);
-      await AsyncStorage.setItem('user', JSON.stringify({
-        id: response.user.id,
-        username: response.user.username,
-        role: response.user.role,
-        club: response.user.club,
-        email: response.user.email,
-        firstname: response.user.firstname,
-        lastname: response.user.lastname
-      }));
-      
-      return {
-        success: true,
-        user: response.user
-      };
+    const userJson = await AsyncStorage.getItem('user');
+    if (userJson) {
+      const user = JSON.parse(userJson);
+      return user.is_admin === true;
     }
-    
-    return {
-      success: false,
-      message: response.message || 'Registration failed'
-    };
+    return false;
   } catch (error) {
-    console.error('Registration error:', error);
-    return {
-      success: false,
-      message: error.message || 'Registration failed'
-    };
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+};
+
+// Get current user's team ID
+export const getCurrentUserTeamId = async () => {
+  try {
+    const userJson = await AsyncStorage.getItem('user');
+    if (userJson) {
+      const user = JSON.parse(userJson);
+      return user.team_id;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user team ID:', error);
+    return null;
   }
 };
 
@@ -100,15 +96,12 @@ export const logoutUser = async () => {
     const token = await AsyncStorage.getItem('token');
     if (token) {
       try {
-        // Try to call logout endpoint
         await post(AUTH_ENDPOINTS.LOGOUT);
       } catch (apiError) {
         console.warn('Logout API call failed:', apiError);
-        // Continue with local cleanup even if API call fails
       }
     }
 
-    // Clear all auth-related data from storage
     const keysToRemove = ['token', 'user'];
     await AsyncStorage.multiRemove(keysToRemove);
 
@@ -119,7 +112,6 @@ export const logoutUser = async () => {
   } catch (error) {
     console.error('Logout error:', error);
     
-    // Attempt to clear storage even if there was an error
     try {
       await AsyncStorage.multiRemove(['token', 'user']);
     } catch (storageError) {
@@ -163,5 +155,22 @@ export const getCurrentUser = async () => {
   } catch (error) {
     console.error('Get current user error:', error);
     return null;
+  }
+};
+
+// Get current user with team information including logo
+export const getCurrentUserWithTeam = async () => {
+  try {
+    const response = await get(AUTH_ENDPOINTS.PROFILE_WITH_TEAM);
+    return {
+      success: true,
+      user: response.user
+    };
+  } catch (error) {
+    console.error('Get user with team error:', error);
+    return {
+      success: false,
+      message: error.message
+    };
   }
 };

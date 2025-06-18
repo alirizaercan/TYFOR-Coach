@@ -1,33 +1,45 @@
 {
-    "expo": {
-      "name": "IQAS Coach",
-      "slug": "iqas-coach",
-      "version": "1.0.0",
-      "orientation": "portrait",
-      "icon": "./src/assets/images/IQAS_logo_circle.png",
-      "splash": {
-        "image": "./src/assets/images/IQAS_auth.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#ffffff"
-      },
-      "updates": {
-        "fallbackToCacheTimeout": 0
-      },
-      "assetBundlePatterns": [
-        "**/*"
-      ],
-      "ios": {
-        "supportsTablet": true
-      },
-      "android": {
-        "adaptiveIcon": {
-          "foregroundImage": "./src/assets/images/IQAS_logo_circle.png",
-          "backgroundColor": "#FFFFFF"
+  "expo": {
+    "name": "TYFOR Coach",
+    "slug": "tyfor-coach",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/images/TYFOR_logo_circle.png",
+    "splash": {
+      "image": "./src/assets/images/TYFOR_auth.gif",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/images/TYFOR_logo_circle.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "web": {
+      "favicon": "./src/assets/images/TYFOR_logo_circle.png",
+      "bundler": "metro",
+      "output": "static",
+      "build": {
+        "babel": {
+          "include": [
+            "@expo/vector-icons"
+          ]
         }
-      },
-      "web": {
-        "favicon": "./src/assets/images/IQAS_logo_circle.png"
-      },
-      "sdkVersion": "53.0.0"
-    }
+      }
+    },
+    "sdkVersion": "53.0.0",
+    "plugins": [
+      "expo-router"
+    ]
   }
+}

@@ -29,7 +29,7 @@ app.register_blueprint(auth_controller, url_prefix='/api/auth')
 
 @app.route('/')
 def home():
-    return "Welcome to the IQAnadoluScout API!"
+    return "Welcome to the TYFOR API!"
 
 @app.route('/static/graphs/physical_graphs/<path:filename>')
 def serve_physical_graph(filename):
@@ -46,7 +46,7 @@ def serve_endurance_graph(filename):
 @app.route('/api')
 def api_info():
     return jsonify({
-        "name": "IQAS Coach API",
+        "name": "TYFOR Coach API",
         "version": "1.0",
         "endpoints": {
             "auth": "/api/auth",

@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, request, jsonify, current_app
 from services.physical_service import PhysicalService
 from utils.database import Database
-from middlewares.auth_middleware import token_required, coach_required
+from middlewares.auth_middleware import token_required, coach_required, team_access_required, footballer_access_required
 import random
 import numpy as np
 import seaborn as sns
@@ -35,11 +35,11 @@ def get_leagues():
 @physical_bp.route('/teams/<league_id>', methods=['GET'])
 @token_required
 def get_teams(league_id):
-    """Get teams by league_id."""
+    """Get teams by league_id that user can access."""
     session = db.connect()
     try:
         service = PhysicalService(session)
-        teams = service.get_teams_by_league(league_id)
+        teams = service.get_teams_by_league(league_id, user_id=request.user_id)
         return jsonify(teams), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -48,12 +48,13 @@ def get_teams(league_id):
 
 @physical_bp.route('/footballers/<team_id>', methods=['GET'])
 @token_required
+@team_access_required
 def get_footballers(team_id):
     """Get footballers by team_id."""
     session = db.connect()
     try:
         service = PhysicalService(session)
-        footballers = service.get_footballers_by_team(team_id)
+        footballers = service.get_footballers_by_team(team_id, user_id=request.user_id)
         return jsonify(footballers), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -62,6 +63,7 @@ def get_footballers(team_id):
 
 @physical_bp.route('/physical-data/<footballer_id>', methods=['GET'])
 @token_required
+@footballer_access_required
 def get_footballer_physical_data(footballer_id):
     """Get physical data for a specific footballer."""
     session = db.connect()
@@ -80,6 +82,7 @@ def get_footballer_physical_data(footballer_id):
 
 @physical_bp.route('/physical-data/<footballer_id>/<date>', methods=['GET'])
 @token_required
+@footballer_access_required
 def get_physical_data_by_date(footballer_id, date):
     """Get physical data for a footballer on a specific date."""
     session = db.connect()
@@ -87,17 +90,56 @@ def get_physical_data_by_date(footballer_id, date):
         service = PhysicalService(session)
         physical_entry = service.get_physical_entry_by_date(footballer_id, date)
         
+        # Veri yoksa veya hata varsa her zaman 0 değerlerle template döndür
         if not physical_entry:
-            return jsonify({'message': 'No data found for this date'}), 404
+            # Veri yoksa 0 değerlerle template döndür
+            empty_template = {
+                'footballer_id': int(footballer_id),
+                'date': date,
+                'height': 0,
+                'weight': 0,
+                'body_fat_percentage': 0,
+                'muscle_mass': 0,
+                'flexibility_score': 0,
+                'agility_score': 0,
+                'balance_score': 0,
+                'coordination_score': 0,
+                'reaction_time': 0,
+                'vertical_jump': 0,
+                'horizontal_jump': 0,
+                'created_at': None,
+                'message': 'No data found for this date. Default values shown.'
+            }
+            return jsonify(empty_template), 200
             
         return jsonify(physical_entry), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Herhangi bir hata durumunda da 0 değerlerle template döndür
+        print(f"Error in get_physical_data_by_date: {str(e)}")
+        empty_template = {
+            'footballer_id': int(footballer_id),
+            'date': date,
+            'height': 0,
+            'weight': 0,
+            'body_fat_percentage': 0,
+            'muscle_mass': 0,
+            'flexibility_score': 0,
+            'agility_score': 0,
+            'balance_score': 0,
+            'coordination_score': 0,
+            'reaction_time': 0,
+            'vertical_jump': 0,
+            'horizontal_jump': 0,
+            'created_at': None,
+            'message': 'Error occurred or invalid date format. Default values shown.'
+        }
+        return jsonify(empty_template), 200
     finally:
         db.close(session)
 
 @physical_bp.route('/physical-data/<footballer_id>', methods=['POST'])
 @coach_required
+@footballer_access_required
 def add_physical_data(footballer_id):
     """Add new physical data for a footballer."""
     if not request.is_json:
@@ -134,7 +176,7 @@ def update_physical_data(entry_id):
         data = request.get_json()
         service = PhysicalService(session)
         
-        result, message = service.update_physical_data(entry_id, data)
+        result, message = service.update_physical_data(entry_id, data, user_id=request.user_id)
         
         if not result:
             return jsonify({"message": message}), 400
@@ -156,7 +198,7 @@ def delete_physical_data(entry_id):
     try:
         service = PhysicalService(session)
         
-        result, message = service.delete_physical_data(entry_id)
+        result, message = service.delete_physical_data(entry_id, user_id=request.user_id)
         
         if not result:
             return jsonify({"message": message}), 400
@@ -171,6 +213,7 @@ def delete_physical_data(entry_id):
 
 @physical_bp.route('/physical-history/<footballer_id>', methods=['GET'])
 @token_required
+@footballer_access_required
 def get_physical_history(footballer_id):
     """Get physical data history for a footballer."""
     session = db.connect()
@@ -477,4 +520,38 @@ def generate_graph():
 
     finally:
         # Bağlantıyı kapat
+        db.close(session)
+
+@physical_bp.route('/debug/user-access/<team_id>', methods=['GET'])
+@token_required
+def debug_user_access(team_id):
+    """Debug endpoint to check user access to a specific team"""
+    from services.authorization_service import AuthorizationService
+    
+    session = db.connect()
+    try:
+        auth_service = AuthorizationService(session)
+        user = auth_service.get_user_by_id(request.user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        can_access = auth_service.can_access_team(request.user_id, team_id)
+        
+        debug_info = {
+            "user_id": user.id,
+            "username": user.username,
+            "user_team_id": user.team_id,
+            "is_admin": user.is_admin,
+            "requested_team_id": team_id,
+            "requested_team_id_int": int(team_id),
+            "can_access_team": can_access,
+            "comparison_result": user.team_id == int(team_id) if not user.is_admin else "Admin - all access"
+        }
+        
+        return jsonify(debug_info), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
         db.close(session)

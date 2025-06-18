@@ -1,0 +1,94 @@
+/* Web-specific styles for React Native Web compatibility */
+
+/* Reset default styles that can interfere with React Native Web */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure the root app container takes full height */
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+}
+
+/* Fix ScrollView components for web */
+div[style*="overflow-x: hidden"] {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+div[style*="overflow-y: hidden"] {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure ScrollView content can scroll */
+div[data-focusable="true"] {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for specific ScrollView implementations */
+div[style*="flex: 1"] {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Make sure nested containers allow scrolling */
+div[style*="backgroundColor"] div[style*="flex"] {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for React Native Modal components on web */
+div[role="dialog"] {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* General scrollable container fix */
+.scrollable, .scroll-container {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar styling for better UX */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 225, 255, 0.6);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 225, 255, 0.8);
+}
+
+/* Prevent scroll issues with touch events */
+* {
+  touch-action: manipulation;
+}
+
+/* Ensure proper focus handling for web accessibility */
+*:focus {
+  outline: 2px solid rgba(0, 225, 255, 0.6);
+  outline-offset: 2px;
+}
+
+/* Hide focus outline for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}

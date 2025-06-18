@@ -5,6 +5,7 @@ from models.league import League
 from models.football_team import FootballTeam
 from models.footballer import Footballer
 from models.physical import Physical
+from models.user import User
 from sqlalchemy.orm import Session
 
 class PhysicalService:
@@ -14,23 +15,53 @@ class PhysicalService:
     def get_all_leagues(self):
         """Get all leagues available in the database."""
         leagues = self.session.query(League).all()
-        return [{"league_id": league.league_id, "league_name": league.league_name, "league_logo_path": league.league_logo_path} for league in leagues]
-
-    def get_teams_by_league(self, league_id):
-        """Get all teams in a specific league."""
-        teams = self.session.query(FootballTeam).filter_by(league_id=league_id).all()
-        return [{"team_id": team.team_id, "team_name": team.team_name, "img_path": team.img_path} for team in teams]
-
-    def get_footballers_by_team(self, team_id):
-        """Get all footballers in a specific team."""
+        return [{"league_id": league.league_id, "league_name": league.league_name, "league_logo_path": league.league_logo_path} for league in leagues]    
+    
+    def get_teams_by_league(self, league_id, user_id=None):
+        """Get all teams in a specific league that user can access."""
+        if user_id:
+            user = self.session.query(User).filter(User.id == user_id).first()
+            if user and not user.is_admin and user.team_id:
+                # Non-admin users can only see their assigned team
+                teams = self.session.query(FootballTeam).filter(
+                    and_(FootballTeam.league_id == league_id, FootballTeam.team_id == user.team_id)
+                ).all()
+            else:
+                # Admin users can see all teams
+                teams = self.session.query(FootballTeam).filter_by(league_id=league_id).all()
+        else:
+            teams = self.session.query(FootballTeam).filter_by(league_id=league_id).all()
+        
+        return [{"team_id": team.team_id, "team_name": team.team_name, "img_path": team.img_path} for team in teams]    
+    
+    def get_footballers_by_team(self, team_id, user_id=None):
+        """Get all footballers in a specific team that user can access."""
+        if user_id:
+            user = self.session.query(User).filter(User.id == user_id).first()
+            if user and not user.is_admin:
+                try:
+                    # Convert both to strings for comparison to avoid type issues
+                    user_team_id = int(user.team_id) if user.team_id is not None else None
+                    requested_team_id = int(team_id) if team_id is not None else None
+                    
+                    if user_team_id != requested_team_id:
+                        # Non-admin users can only access their assigned team's footballers
+                        return []
+                except Exception:
+                    return []
         footballers = self.session.query(Footballer).filter_by(team_id=team_id).all()
         return [{
             "footballer_id": f.footballer_id, 
             "footballer_name": f.footballer_name, 
             "footballer_img_path": f.footballer_img_path, 
             "position": f.position,
-            "nationality_img_path": f.nationality_img_path, 
-            "birthday": f.birthday.strftime('%d %B %Y') if f.birthday else None
+            "nationality_img_path": f.nationality_img_path,
+            "birthday": f.birthday.strftime('%d %B %Y') if f.birthday else None,
+            "age": f.age,
+            "height": f.height,
+            "trikot_num": f.trikot_num,
+            "feet": f.feet,
+            "market_value": f.market_value
         } for f in footballers]
 
     def get_physical_data(self, footballer_id, graph_type=None, start_date=None, end_date=None):
@@ -176,15 +207,18 @@ class PhysicalService:
             
         except Exception as e:
             self.session.rollback()
-            return None, str(e)
-
-    def update_physical_data(self, entry_id, data):
+        return None, str(e)    
+    def update_physical_data(self, entry_id, data, user_id=None):
         """Update existing physical data for a footballer."""
         try:
             entry = self.session.query(Physical).filter(Physical.id == entry_id).first()
             
             if not entry:
                 return None, "Physical data entry not found"
+            
+            # Check authorization if user_id is provided
+            if user_id and not self.can_access_entry(user_id, entry_id):
+                return None, "Access denied! You can only modify data for your assigned team."
             
             # Update fields if provided
             if 'muscle_mass' in data:
@@ -226,21 +260,24 @@ class PhysicalService:
             return {
                 'id': entry.id,
                 'footballer_id': entry.footballer_id,
-                'created_at': entry.created_at.strftime('%Y-%m-%d'),
-                'updated_at': entry.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                'created_at': entry.created_at.strftime('%Y-%m-%d'),                'updated_at': entry.timestamp.strftime('%Y-%m-%d %H:%M:%S')
             }, "Physical data updated successfully"
             
         except Exception as e:
             self.session.rollback()
             return None, str(e)
 
-    def delete_physical_data(self, entry_id):
+    def delete_physical_data(self, entry_id, user_id=None):
         """Delete physical data entry."""
         try:
             entry = self.session.query(Physical).filter(Physical.id == entry_id).first()
             
             if not entry:
                 return False, "Physical data entry not found"
+            
+            # Check authorization if user_id is provided
+            if user_id and not self.can_access_entry(user_id, entry_id):
+                return False, "Access denied! You can only delete data for your assigned team."
             
             self.session.delete(entry)
             self.session.commit()
@@ -269,3 +306,26 @@ class PhysicalService:
             'heights': entry.heights,
             'created_at': entry.created_at.strftime('%Y-%m-%d')
         } for entry in entries]
+
+    def can_access_entry(self, user_id, entry_id):
+        """Check if user can access a specific physical data entry."""
+        user = self.session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False
+        
+        # Admin users can access all entries
+        if user.is_admin:
+            return True
+        
+        # Get the physical entry and check if it belongs to user's team
+        entry = self.session.query(Physical).filter(Physical.id == entry_id).first()
+        if not entry:
+            return False
+        
+        # Get footballer's team
+        footballer = self.session.query(Footballer).filter(Footballer.footballer_id == entry.footballer_id).first()
+        if not footballer:
+            return False
+        
+        # Check if user's team matches footballer's team
+        return user.team_id == footballer.team_id

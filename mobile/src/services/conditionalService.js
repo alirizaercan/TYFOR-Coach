@@ -1,6 +1,7 @@
 // mobile/src/services/conditionalService.js
 import { CONDITIONAL_ENDPOINTS } from '../constants/api';
 import { get, post, put, del } from './api';
+import { getCurrentUser, isUserAdmin } from './auth';
 
 // Get all leagues
 export const fetchLeagues = async () => {
@@ -12,22 +13,120 @@ export const fetchLeagues = async () => {
   }
 };
 
-// Get teams by league ID
+// Get teams by league ID (filtered by user permissions)
 export const fetchTeamsByLeague = async (leagueId) => {
   try {
-    return await get(`${CONDITIONAL_ENDPOINTS.TEAMS}/${leagueId}`);
+    const teams = await get(`${CONDITIONAL_ENDPOINTS.TEAMS}/${leagueId}`);
+    
+    // Backend already filters teams based on user permissions
+    return teams;
   } catch (error) {
     console.error(`Error fetching teams for league ${leagueId}:`, error);
     throw error;
   }
 };
 
-// Get footballers by team ID
+// Get footballers by team ID (with permission check)
 export const fetchFootballersByTeam = async (teamId) => {
   try {
-    return await get(`${CONDITIONAL_ENDPOINTS.FOOTBALLERS}/${teamId}`);
+    // Takım ID'sini integer'a çevir
+    const intTeamId = parseInt(teamId);
+    if (isNaN(intTeamId)) {
+      console.error('Invalid team ID, must be integer:', teamId);
+      throw new Error('Invalid team ID format');
+    }
+    
+    const currentUser = await getCurrentUser();
+    const isAdmin = await isUserAdmin();
+    
+    // Check if user has access to this team
+    if (!isAdmin && currentUser?.team_id && intTeamId) {
+      const userTeamId = parseInt(currentUser.team_id);
+      if (isNaN(userTeamId)) {
+        throw new Error('Invalid user team ID format');
+      }
+      if (userTeamId !== intTeamId) {
+        throw new Error('You do not have permission to access this team\'s footballers');
+      }
+    }
+    // Backend'e integer olarak gönder
+    const response = await get(`${CONDITIONAL_ENDPOINTS.FOOTBALLERS}/${intTeamId}`);
+    return response;
   } catch (error) {
     console.error(`Error fetching footballers for team ${teamId}:`, error);
+    
+    // If it's a permission error, re-throw it
+    if (error.message.includes('permission') || error.message.includes('Invalid team ID')) {
+      throw error;
+    }
+    
+    // For other errors, check if it's a 500 and provide better error message
+    if (error.status === 500) {
+      throw new Error('Server error while fetching footballers. Please try again.');
+    }
+    
+    throw error;
+  }
+};
+
+// Get accessible teams for current user
+export const fetchUserAccessibleTeams = async () => {
+  try {
+    const currentUser = await getCurrentUser();
+    const isAdmin = await isUserAdmin();
+    
+    if (!currentUser) {
+      throw new Error('User not authenticated');
+    }
+    
+    // If admin, get all leagues and teams
+    if (isAdmin) {
+      const leagues = await fetchLeagues();
+      const allTeams = [];
+      
+      for (const league of leagues) {
+        try {
+          const teams = await fetchTeamsByLeague(league.league_id);
+          allTeams.push(...teams.map(team => ({
+            ...team,
+            league_name: league.league_name,
+            league_id: league.league_id
+          })));
+        } catch (error) {
+          console.warn(`Failed to fetch teams for league ${league.league_id}:`, error);
+        }
+      }
+      
+      return allTeams;
+    } else {
+      // Non-admin users: find their specific team
+      if (!currentUser.team_id) {
+        return [];
+      }
+      
+      const leagues = await fetchLeagues();
+      
+      for (const league of leagues) {
+        try {
+          const teams = await fetchTeamsByLeague(league.league_id);
+          const userTeam = teams.find(team => team.team_id === currentUser.team_id);
+          
+          if (userTeam) {
+            return [{
+              ...userTeam,
+              league_name: league.league_name,
+              league_id: league.league_id
+            }];
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch teams for league ${league.league_id}:`, error);
+        }
+      }
+      
+      return [];
+    }
+  } catch (error) {
+    console.error('Error fetching user accessible teams:', error);
     throw error;
   }
 };

@@ -6,6 +6,10 @@ export default StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    ...(Platform.OS === 'web' && {
+      height: '100vh',
+      overflow: 'auto',
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -131,10 +135,14 @@ export default StyleSheet.create({
   },
   formSection: {
     marginBottom: 20,
-  },
-  selectionContainer: {
+  },  selectionContainer: {
     flex: 1,
     padding: 20,
+    ...(Platform.OS === 'web' && {
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      height: '100%',
+    }),
   },
   selectionTitle: {
     fontSize: 22,
@@ -178,10 +186,14 @@ export default StyleSheet.create({
     color: colors.white,
     fontWeight: '500',
     letterSpacing: 0.3,
-  },
-  // Form styles
+  },  // Form styles
   formContainer: {
     padding: 15,
+    ...(Platform.OS === 'web' && {
+      overflow: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      height: '100%',
+    }),
   },
   inputRow: {
     flexDirection: 'row',
