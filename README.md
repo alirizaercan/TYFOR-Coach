@@ -1,6 +1,6 @@
 # TYFOR Coach - Mobile Data Collection Application
 
-![TYFOR Coach](src/assets/images/tyfor-coach-banner.png)
+![TYFOR Coach](mobile/src/assets/images/TYFOR.png)
 
 [![TYFOR Platform](https://img.shields.io/badge/Main%20Platform-tyfor.online-blue)](https://tyfor.online)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](#copyright-and-intellectual-property)
@@ -25,23 +25,23 @@ TYFOR Coach serves as the **mobile data entry interface** for the comprehensive 
 
 ### Authentication & Dashboard
 <div align="center">
-  <img src="src/assets/images/screenshots/login-screen.png" width="250" alt="Login Screen" />
-  <img src="src/assets/images/screenshots/dashboard.png" width="250" alt="Dashboard" />
-  <img src="src/assets/images/screenshots/profile.png" width="250" alt="User Profile" />
+  <img src="mobile/src/assets/images/mobile_login_screen.png" width="250" alt="Login Screen" />
+  <img src="mobile/src/assets/images/mobil_dashboard_screen.png" width="250" alt="Dashboard" />
+  <img src="mobile/src/assets/images/TYFOR_auth.gif" width="250" alt="Authentication Flow" />
 </div>
 
 ### Data Collection Interface
 <div align="center">
-  <img src="src/assets/images/screenshots/player-selection.png" width="250" alt="Player Selection" />
-  <img src="src/assets/images/screenshots/physical-data.png" width="250" alt="Physical Data Entry" />
-  <img src="src/assets/images/screenshots/endurance-data.png" width="250" alt="Endurance Tracking" />
+  <img src="mobile/src/assets/images/mobile_physical_development_screen.png" width="250" alt="Physical Development Screen" />
+  <img src="mobile/src/assets/images/mpbile_physical_data_entry_screen.png" width="250" alt="Physical Data Entry" />
+  <img src="mobile/src/assets/images/mobile_youth_development_screen.png" width="250" alt="Youth Development Tracking" />
 </div>
 
 ### Performance Analytics
 <div align="center">
-  <img src="src/assets/images/screenshots/conditional-data.png" width="250" alt="Conditional Performance" />
-  <img src="src/assets/images/screenshots/analytics-view.png" width="250" alt="Analytics Dashboard" />
-  <img src="src/assets/images/screenshots/progress-charts.png" width="250" alt="Progress Charts" />
+  <img src="mobile/src/assets/images/conditioning_page_icon.png" width="250" alt="Conditioning Performance" />
+  <img src="mobile/src/assets/images/endurance_page_icon.png" width="250" alt="Endurance Analytics" />
+  <img src="mobile/src/assets/images/physical_page_icon.png" width="250" alt="Physical Performance" />
 </div>
 
 ## 🎯 Key Features
@@ -221,7 +221,12 @@ TYFOR-Coach/
 │   ├── src/
 │   │   ├── 🖼️ assets/           # Images, fonts, and static resources
 │   │   │   └── images/
-│   │   │       └── screenshots/ # App screenshots for documentation
+│   │   │       ├── TYFOR.png    # Main logo
+│   │   │       ├── TYFOR_auth.gif # Authentication animation
+│   │   │       ├── mobile_login_screen.png # Login screen
+│   │   │       ├── mobil_dashboard_screen.png # Dashboard screen
+│   │   │       ├── mobile_physical_development_screen.png # Physical dev screen
+│   │   │       └── ... # Other app screenshots and icons
 │   │   ├── 🧩 components/       # Reusable UI components
 │   │   │   ├── AuthForm.js      # Authentication form component
 │   │   │   ├── DatePicker.js    # Custom date selection component
